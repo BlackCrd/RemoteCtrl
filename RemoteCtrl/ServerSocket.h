@@ -138,9 +138,11 @@ public:
 		return true;
 	}
 	bool AcceptClient() {
+		TRACE("Enter AcceptClient\r\n");
 		sockaddr_in client_adr;
 		int cli_sz = sizeof(client_adr);
 		m_client=accept(m_sock, (sockaddr*)&client_adr, &cli_sz);
+		TRACE("m_client=%d\r\n", m_client);
 		if (m_client == -1)return false;
 		return true;
 	}
@@ -150,22 +152,30 @@ public:
 		if (m_client == -1)return -1;
 		//char buffer[1024] = "";
 		char* buffer = new char[BUFFER_SIZE];
+		if (buffer == NULL) {
+			TRACE("ÄÚ´æ²»×ã£¡\r\n");
+			return -2;
+		}
 		memset(buffer, 0, BUFFER_SIZE);
 		size_t index = 0;
 		while (true) {
 			size_t len = recv(m_client, buffer + index, BUFFER_SIZE - index, 0);
 			if (len <= 0) {
+				delete[]buffer;
 				return -1;
 			}
+			TRACE("recv %d\r\n", len);
 			index += len;
 			len = index;
 			m_packet = CPacket((BYTE*)buffer, len);
 			if (len > 0) {
 				memmove(buffer, buffer + len, BUFFER_SIZE - len);
 				index -= len;
+				delete[]buffer;
 				return m_packet.sCmd;
 			}
 		}
+		delete[]buffer;
 		return -1;
 	}
 
@@ -191,7 +201,7 @@ public:
 		}
 		return false;
 	}
-	CPacket GetPacket() {
+	CPacket& GetPacket() {
 		return m_packet;
 	}
 	void CloseClient() {
