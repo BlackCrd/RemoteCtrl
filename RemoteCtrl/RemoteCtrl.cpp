@@ -230,7 +230,7 @@ int SendScreen() {
     int nWidth = GetDeviceCaps(hScreen, HORZRES);
     int nHeight = GetDeviceCaps(hScreen, VERTRES);
     screen.Create(nWidth, nHeight, nBitPerPixel);
-    BitBlt(screen.GetDC(), 0, 0, 1920, 1080, hScreen, 0, 0, SRCCOPY);
+    BitBlt(screen.GetDC(), 0, 0, 1980, 1080, hScreen, 0, 0, SRCCOPY);
     ReleaseDC(NULL, hScreen);
     HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
     if (hMem == NULL)return -1;
@@ -242,7 +242,7 @@ int SendScreen() {
         pStream->Seek(bg, STREAM_SEEK_SET, NULL);
         PBYTE pData = (PBYTE)GlobalLock(hMem);
         SIZE_T nSize = GlobalSize(hMem);
-        CPacket pack(6, NULL, nSize);
+        CPacket pack(6, pData, nSize);
         CServerSocket::getInstance()->Send(pack);
         GlobalUnlock(hMem);
     }

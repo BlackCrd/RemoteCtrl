@@ -8,7 +8,7 @@ void Dump(BYTE* pData, size_t nSize);
 class CPacket {
 public:
 	CPacket():sHead(0),nLength(0),sCmd(0),sSum(0){}
-	CPacket(WORD nCmd, const BYTE* pData, size_t nSize) {
+	CPacket(WORD nCmd, const BYTE* pData, size_t nSize) {//打包数据的重构，用于数据包打包
 		sHead = 0xFEFF;
 		nLength = nSize + 4;
 		sCmd = nCmd;
@@ -17,7 +17,7 @@ public:
 			memcpy((void*)strData.c_str(), pData, nSize);
 		}
 		else {
-			strData.clear();
+			strData.clear();//无数据清空
 		}
 		sSum = 0;
 		for (size_t j = 0; j < strData.size(); j++) {
@@ -31,11 +31,11 @@ public:
 		strData = pack.strData;
 		sSum = pack.sSum;
 	}
-	CPacket(const BYTE* pData,size_t& nSize){
+	CPacket(const BYTE* pData,size_t& nSize){//用于包数据解析
 		size_t i = 0;
 		for (; i < nSize; i++) {
-			if (*(WORD*)(pData + i) == 0xFEFF) {
-				sHead = *(WORD*)(pData + i);
+			if (*(WORD*)(pData + i) == 0xFEFF) {//识别包头
+				sHead = *(WORD*)(pData + i);//取包头
 				i += 2;
 				break;
 			}
@@ -51,9 +51,9 @@ public:
 		}
 		sCmd = *(WORD*)(pData + i); i += 2;
 		if (nLength > 4) {
-		strData.resize(nLength - 2 - 2);
-		memcpy((void*)strData.c_str(), pData + i, nLength - 4);
-		i += nLength - 4;
+			strData.resize(nLength - 2 - 2);
+			memcpy((void*)strData.c_str(), pData + i, nLength - 4);
+			i += nLength - 4;
 		}
 		sSum = *(WORD*)(pData + i); i += 2;
 		WORD sum = 0;
@@ -161,7 +161,7 @@ public:
 		return true;
 	}
 
-#define BUFFER_SIZE 409600
+#define BUFFER_SIZE 4096
 	int DealCommand() {
 		if (m_client == -1)return -1;
 		//char buffer[1024] = "";
