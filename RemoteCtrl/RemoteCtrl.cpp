@@ -169,6 +169,7 @@ int MouseEvent() {
         default:
             break;
         }
+        TRACE("mouse event:%08X x %d y %d\r\n", nFlags, mouse.ptXY.x, mouse.ptXY.y);
         switch (nFlags) {
         case 0x21://左键双击
             mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
@@ -230,7 +231,7 @@ int SendScreen() {
     int nWidth = GetDeviceCaps(hScreen, HORZRES);
     int nHeight = GetDeviceCaps(hScreen, VERTRES);
     screen.Create(nWidth, nHeight, nBitPerPixel);
-    BitBlt(screen.GetDC(), 0, 0, 1980, 1080, hScreen, 0, 0, SRCCOPY);
+    BitBlt(screen.GetDC(), 0, 0, nWidth, nHeight, hScreen, 0, 0, SRCCOPY);
     ReleaseDC(NULL, hScreen);
     HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
     if (hMem == NULL)return -1;
