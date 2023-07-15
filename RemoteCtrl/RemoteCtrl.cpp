@@ -275,18 +275,28 @@ unsigned __stdcall threadLockDlg(void* arg) {
     CRect rect;
     rect.left = 0;
     rect.top = 0;
-    rect.right = GetSystemMetrics(SM_CXFULLSCREEN);
+    rect.right = GetSystemMetrics(SM_CXFULLSCREEN);//w1
     rect.bottom = GetSystemMetrics(SM_CYFULLSCREEN);
-    rect.bottom = LONG(rect.bottom * 1.03);
+    rect.bottom = LONG(rect.bottom * 1.10);
     TRACE("right=%d bottom=%d\r\n", rect.right, rect.bottom);
     dlg.MoveWindow(rect);
+    CWnd* pText = dlg.GetDlgItem(IDC_STATIC);
+    if (pText) {
+        CRect rtText;
+        pText->GetWindowRect(rtText);
+        int nWith = rtText.Width();//w0
+        int x = (rect.right - nWith) / 2;
+        int nHeight = rtText.Height();
+        int y = (rect.bottom - nHeight) / 2;
+        pText->MoveWindow(x, y, rtText.Width(), rtText.Height());
+    }
     //窗口置顶
     dlg.SetWindowPos(&dlg.wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
     //限制鼠标功能
     ShowCursor(false);
     //隐藏任务栏
     ::ShowWindow(::FindWindow(_T("Shell_TrayWnd"), NULL), SW_HIDE);
-    //dlg.GetWindowRect(rect);
+    dlg.GetWindowRect(rect);
     rect.left = 0;
     rect.top = 0;
     rect.right = 1;
@@ -303,7 +313,10 @@ unsigned __stdcall threadLockDlg(void* arg) {
             }
         }
     }
+    ClipCursor(NULL);//恢复鼠标活动范围
+    //恢复鼠标
     ShowCursor(true);
+    //恢复任务栏
     ::ShowWindow(::FindWindow(_T("Shell_TrayWnd"), NULL), SW_SHOW);
     dlg.DestroyWindow();
     _endthreadex(0);
@@ -311,10 +324,10 @@ unsigned __stdcall threadLockDlg(void* arg) {
 }
 
 int LockMachine() {
-    if ((dlg.m_hWnd == NULL) && (dlg.m_hWnd == INVALID_HANDLE_VALUE)) {
+    if ((dlg.m_hWnd == NULL) || (dlg.m_hWnd == INVALID_HANDLE_VALUE)) {
         //_beginthread(threadLockDlg, 0, NULL);
-        _beginthreadex(NULL,0,threadLockDlg,NULL,0,&threadid);
-        TRACE("thread=%d\r\n", threadid);
+        _beginthreadex(NULL, 0, threadLockDlg, NULL, 0, &threadid);
+        TRACE("threadid=%d\r\n", threadid);
     }
     CPacket pack(7, NULL, 0);
     CServerSocket::getInstance()->Send(pack);
@@ -325,7 +338,7 @@ int UnlockMachine() {
     //dlg.SendMessage(WM_KEYDOWN, 0x41, 0x01E0001);
     //::SendMessage(dlg.m_hWnd, WM_KEYDOWN, 0x41, 0x01E0001);
     PostThreadMessage(threadid, WM_KEYDOWN, 0x41, 0);
-    CPacket pack(7, NULL, 0);
+    CPacket pack(8, NULL, 0);
     CServerSocket::getInstance()->Send(pack);
     return 0;
 }

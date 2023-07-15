@@ -138,7 +138,7 @@ BOOL CRemoteClientDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 	UpdateData();
-	m_server_address = 0xC0A80A08;//192.168.10.8
+	m_server_address = 0xC0A80A03;//192.168.10.3
 	m_nPort = _T("9527");
 	UpdateData(FALSE);
 	m_dlgStatus.Create(IDD_DLG_STATUS, this);
@@ -512,8 +512,10 @@ LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam)
 	case 5: {//鼠标操作
 		ret = SendCommandPacket(cmd, wParam & 1, (BYTE*)lParam, sizeof(MOUSEEV));
 	}
-		  break;
-	case 6:{
+		  break;	
+	case 6:
+	case 7:
+	case 8:{
 			ret = SendCommandPacket(cmd, wParam & 1);
 		}
 		break;
