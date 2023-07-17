@@ -138,7 +138,7 @@ BOOL CRemoteClientDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 	UpdateData();
-	m_server_address = 0xC0A80A03;//192.168.10.3
+	m_server_address = 0xC0A80A04;//192.168.10.4
 	m_nPort = _T("9527");
 	UpdateData(FALSE);
 	m_dlgStatus.Create(IDD_DLG_STATUS, this);
@@ -315,13 +315,13 @@ void CRemoteClientDlg::threadDownFile()
 				TRACE("执行下载失败：ret=%d\r\n", ret);
 				break;
 			}
-			long long nlength = *(long long*)pClient->GetPacket().strData.c_str();
-			if (nlength == 0) {
+			long long nLength = *(long long*)pClient->GetPacket().strData.c_str();
+			if (nLength == 0) {
 				AfxMessageBox("文件长度为零或者无法读取文件！！！");
 				break;
 			}
 			long long nCount = 0;
-			while (nCount < nlength) {
+			while (nCount < nLength) {
 				ret = pClient->DealCommand();
 				if (ret < 0) {
 					AfxMessageBox("传输失败！！");

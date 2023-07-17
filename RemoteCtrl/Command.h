@@ -96,7 +96,7 @@ protected:
         dlg.DestroyWindow();
     }
 
-    int MakeDriverInfo(std::list<CPacket>& IsPacket, CPacket& inPacket) {//1==>A 2==>B 3==>C ... 26==>Z
+    int MakeDriverInfo(std::list<CPacket>& IstPacket, CPacket& inPacket) {//1==>A 2==>B 3==>C ... 26==>Z
         std::string result;
         for (int i = 1; i <= 26; i++) {
             if (_chdrive(i) == 0) {
@@ -105,7 +105,7 @@ protected:
                 result += 'A' + i - 1;
             }
         }
-        IsPacket.push_back(CPacket(1, (BYTE*)result.c_str(), result.size()));
+        IstPacket.push_back(CPacket(1, (BYTE*)result.c_str(), result.size()));
         return 0;
     }
 
@@ -171,11 +171,13 @@ protected:
             size_t rlen = 0;
             do {
                 rlen = fread(buffer, 1, 1024, pFile);
-                IstPacket.push_back(CPacket(4, (BYTE*)&data, 8));
+                IstPacket.push_back(CPacket(4, (BYTE*)buffer, rlen));
             } while (rlen >= 1024);
             fclose(pFile);
         }
-        IstPacket.push_back(CPacket(4, (BYTE*)&data, 8));
+        else {
+            IstPacket.push_back(CPacket(4, (BYTE*)&data, 8));
+        }
         return 0;
     }
 
