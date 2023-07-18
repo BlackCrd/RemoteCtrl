@@ -91,16 +91,16 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
-	ON_BN_CLICKED(IDC_BTN_TEST, &CRemoteClientDlg::OnBnClickedBtnTest)
-	ON_BN_CLICKED(IDC_BTN_FILEINFO, &CRemoteClientDlg::OnBnClickedBtnFileinfo)
-	ON_NOTIFY(NM_DBLCLK, IDC_TREE_DIR, &CRemoteClientDlg::OnNMDblclkTreeDir)
-	ON_NOTIFY(NM_CLICK, IDC_TREE_DIR, &CRemoteClientDlg::OnNMClickTreeDir)
-	ON_NOTIFY(NM_RCLICK, IDC_LIST_FILE, &CRemoteClientDlg::OnNMRClickListFile)
-	ON_COMMAND(ID_DOWNLOAD_FILE, &CRemoteClientDlg::OnDownloadFile)
-	ON_COMMAND(ID_DELETE_FILE, &CRemoteClientDlg::OnDeleteFile)
-	ON_COMMAND(ID_RUN_FILE, &CRemoteClientDlg::OnRunFile)
+	ON_BN_CLICKED(IDC_BTN_TEST, &CRemoteClientDlg::OnBnClickedBtnTest)//WM_COMMAND
+	ON_BN_CLICKED(IDC_BTN_FILEINFO, &CRemoteClientDlg::OnBnClickedBtnFileinfo)//WM_COMMAND
+	ON_NOTIFY(NM_DBLCLK, IDC_TREE_DIR, &CRemoteClientDlg::OnNMDblclkTreeDir)//WM_NOTIFY
+	ON_NOTIFY(NM_CLICK, IDC_TREE_DIR, &CRemoteClientDlg::OnNMClickTreeDir)//WM_NOTIFY
+	ON_NOTIFY(NM_RCLICK, IDC_LIST_FILE, &CRemoteClientDlg::OnNMRClickListFile)//WM_NOTIFY
+	ON_COMMAND(ID_DOWNLOAD_FILE, &CRemoteClientDlg::OnDownloadFile)//WM_COMMAND
+	ON_COMMAND(ID_DELETE_FILE, &CRemoteClientDlg::OnDeleteFile)//WM_COMMAND
+	ON_COMMAND(ID_RUN_FILE, &CRemoteClientDlg::OnRunFile)//WM_COMMAND
 	ON_MESSAGE(WM_SEND_PACKET,&CRemoteClientDlg::OnSendPacket) //注册消息 ③ ④在当前页
-	ON_BN_CLICKED(IDC_BTN_START_WATCH, &CRemoteClientDlg::OnBnClickedBtnStartWatch)
+	ON_BN_CLICKED(IDC_BTN_START_WATCH, &CRemoteClientDlg::OnBnClickedBtnStartWatch)//WM_COMMAND
 	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
@@ -247,7 +247,6 @@ void CRemoteClientDlg::threadWatchData()
 	CClientSocket* pClient = NULL;
 	do {
 		pClient = CClientSocket::getInstance();
-
 	} while (pClient == NULL);
 	while (!m_isClosed) {//等价于while(true)
 		if (m_isFull == false) {//更新数据到缓存
