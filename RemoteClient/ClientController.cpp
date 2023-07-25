@@ -4,12 +4,14 @@
 
 std::map<UINT, CClientController::MSGFUNC> CClientController::m_mapFunc;
 CClientController* CClientController::m_instance = NULL;
+CClientController::CHelper CClientController::m_helper;
 
 CClientController* CClientController::getInstance()
 {
 	if (m_instance == NULL) {
 		m_instance = new CClientController();
-		struct { UINT nMsg; MSGFUNC func; }MsgFuncs[] = {
+		TRACE("CClientController size is %d\r\n", sizeof(*m_instance));
+		struct { UINT nMsg; MSGFUNC func;}MsgFuncs[] = {
 			{WM_SEND_PACK,&CClientController::OnSendPack},
 			{WM_SEND_DATA,&CClientController::OnSendData},
 			{WM_SHOW_STATUS,&CClientController::OnShowStatus},
@@ -20,7 +22,7 @@ CClientController* CClientController::getInstance()
 			m_mapFunc.insert(std::pair<UINT, MSGFUNC>(MsgFuncs[i].nMsg, MsgFuncs[i].func));
 		}
 	}
-	return nullptr;
+	return m_instance;
 }
 
 int CClientController::InitController()
@@ -46,12 +48,45 @@ LRESULT CClientController::SendMessage(MSG msg)
 	return info.result;
 }
 
+int CClientController::SendCommandPacket(int nCmd, bool bAutoClose, BYTE* pData, size_t nLength)
+{
+	CClientSocket* pClient = CClientSocket::getInstance();
+	if (pClient->InitSocket() == false)return false;
+	pClient->Send(CPacket(nCmd, pData, nLength));
+	int cmd = DealCommand();
+	TRACE("ack:%d\r\n", cmd);
+	if (bAutoClose)
+		CloseSocket();
+	return cmd;
+}
+
+int CClientController::DownFile(CString strPath)
+{
+	CFileDialog dlg(FALSE, NULL,
+		strPath, OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY,
+		NULL, &m_remoteDlg);
+	if (dlg.DoModal() == IDOK) {
+		m_strRemote = strPath;
+		m_strLocal = dlg.GetPathName();
+		m_hThreadDownload = (HANDLE)_beginthread(&CClientController::threadDownloadEntry, 0, this);
+		if (WaitForSingleObject(m_hThreadDownload, 0) != WAIT_TIMEOUT) {
+			return -1;
+		}
+		m_statusDlg.BeginWaitCursor();
+		m_statusDlg.m_info.SetWindowText(_T("命令正在执行中！"));
+		m_statusDlg.ShowWindow(SW_SHOW);
+		m_statusDlg.CenterWindow(&m_remoteDlg);
+		m_statusDlg.SetActiveWindow();
+	}
+	return 0;
+}
+
 void CClientController::StartWatchScreen()
 {
 	m_isClosed = false;
-	CWatchDialog dlg(&m_remoteDlg);
+	//m_watchDlg.SetParent(&m_remoteDlg);
 	m_hThreadWatch = (HANDLE)_beginthread(&CClientController::threadWatchScreen, 0, this);
-	dlg.DoModal();
+	m_watchDlg.DoModal();
 	m_isClosed = true;
 	WaitForSingleObject(m_hThreadWatch, 500);
 }
@@ -60,14 +95,14 @@ void CClientController::threadWatchScreen()
 {
 	Sleep(50);
 	while (!m_isClosed) {
-		if (m_remoteDlg.is_Full() == false) {
+		if (m_watchDlg.is_Full() == false) {
 			int ret = SendCommandPacket(6);
 			if (ret == 6) {
 				CImage image;
-				if (GetImage(m_remoteDlg.GetImage()) == 0) {	m_remoteDlg.SetImageStatus(true);
+				if (GetImage(m_remoteDlg.GetImage()) == 0) {	m_watchDlg.SetImageStatus(true);
 				}
 				else {
-					TRACE("获取图片失败！ret=%d\r\n", ret);
+					TRACE("获取图片失败！ret = %d\r\n", ret);
 				}
 			}
 		}

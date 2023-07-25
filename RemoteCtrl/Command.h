@@ -152,7 +152,6 @@ protected:
         return 0;
     }
 
-#pragma warning(disable:4966)//fopen sprintf strcpy strstr
     int DownloadFile(std::list<CPacket>& IstPacket, CPacket& inPacket) {
         std::string strPath = inPacket.strData;
         long long data = 0;

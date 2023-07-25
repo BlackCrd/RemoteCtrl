@@ -71,7 +71,7 @@ BOOL CRemoteClientApp::InitInstance()
 	// 例如修改为公司或组织名
 	SetRegistryKey(_T("应用程序向导生成的本地应用程序"));
 	CClientController::getInstance()->InitController();
-	INT_PTR nResponse=CClientController::getInstance()->Invoke(m_pMainWnd);
+	INT_PTR nResponse = CClientController::getInstance()->Invoke(m_pMainWnd);
 	//CRemoteClientDlg dlg;
 	//m_pMainWnd = &dlg;
 	//INT_PTR nResponse = dlg.DoModal();
@@ -95,6 +95,7 @@ BOOL CRemoteClientApp::InitInstance()
 	if (pShellManager != nullptr)
 	{
 		delete pShellManager;
+		TRACE("shell manager has deleted!\r\n");
 	}
 
 #if !defined(_AFXDLL) && !defined(_AFX_NO_MFC_CONTROLS_IN_DIALOGS)
