@@ -5,6 +5,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <mutex>//互斥体，避免线程间的冲突
 
 #pragma pack(push)
 #pragma pack(1)
@@ -147,29 +148,9 @@ public:
 		}
 		return m_instance;
 	}
-	bool InitSocket() {
-		if (m_sock != INVALID_SOCKET)CloseSocket();
-		m_sock = socket(PF_INET, SOCK_STREAM, 0);
-		if (m_sock == -1)return false;
-		sockaddr_in serv_adr;
-		memset(&serv_adr, 0, sizeof(serv_adr));
-		serv_adr.sin_family = AF_INET;
-		TRACE("addr %08X nIP %08X\r\n", inet_addr("127.0.0.1"), m_nIP);
-		serv_adr.sin_addr.s_addr = htonl(m_nIP);
-		serv_adr.sin_port = htons(m_nPort);
-		if (serv_adr.sin_addr.s_addr == INADDR_NONE) {
-			AfxMessageBox("指定的IP地址，不存在！");
-			return false;
-		}
-		int ret = connect(m_sock, (sockaddr*)&serv_adr, sizeof(serv_adr));
-		if (ret == -1) {
-			AfxMessageBox("连接失败");
-			TRACE("连接失败：%d %s\r\n", WSAGetLastError(), GetErrInfo(WSAGetLastError()).c_str());
-		}
-		return true;
-	}
+	bool InitSocket();
 
-#define BUFFER_SIZE 2048000
+#define BUFFER_SIZE 4096000
 	int DealCommand() {
 		if (m_sock == -1)return -1;
 		char* buffer = m_buffer.data();//TODO:多线程发送命令时可能会先出现冲突
@@ -222,7 +203,9 @@ public:
 		}
 	}
 private:
+	HANDLE m_hThread;
 	bool m_bAutoClose;
+	std::mutex m_lock;
 	std::list<CPacket> m_lstSend;
 	std::map<HANDLE, std::list<CPacket>&> m_mapAck;
 	std::map<HANDLE, bool> m_mapAutoClosed;
@@ -240,7 +223,7 @@ private:
 		m_nPort = ss.m_nPort;
 	}
 	CClientSocket() :
-		m_nIP(INADDR_ANY), m_nPort(0), m_sock(INVALID_SOCKET), m_bAutoClose(true) {
+		m_nIP(INADDR_ANY), m_nPort(0), m_sock(INVALID_SOCKET), m_bAutoClose(true), m_hThread(INVALID_HANDLE_VALUE) {
 		if (InitSocketEnv() == FALSE) {
 			MessageBox(NULL, _T("无法初始化套接字环境，请检查网络设置！"), _T("初始化错误！"), MB_OK | MB_ICONERROR);
 			exit(0);
