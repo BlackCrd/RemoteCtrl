@@ -7,6 +7,7 @@
 #include <map>
 #include <mutex>//互斥体，避免线程间的冲突
 
+#define WM_SEND_PACK (WM_USER+1)//发送包数据
 #pragma pack(push)
 #pragma pack(1)
 class CPacket {
@@ -203,6 +204,8 @@ public:
 		}
 	}
 private:
+	typedef void(CClientSocket::* MSGFUNC)(UINT nMsg, WPARAM wParam, LPARAM lParam);
+	std::map<UINT, MSGFUNC> m_mapFunc;
 	HANDLE m_hThread;
 	bool m_bAutoClose;
 	std::mutex m_lock;
@@ -217,10 +220,26 @@ private:
 	CClientSocket& operator = (const CClientSocket& ss) {}
 	CClientSocket(const CClientSocket& ss) 
 	{
+		m_hThread = INVALID_HANDLE_VALUE;
 		m_bAutoClose = ss.m_bAutoClose;
 		m_sock = ss.m_sock;
 		m_nIP = ss.m_nIP;
 		m_nPort = ss.m_nPort;
+		struct 
+		{
+			UINT message;
+			MSGFUNC func;
+		}funcs[] = {
+			{WM_SEND_PACK,&CClientSocket::SendPack},
+			//{WM_SEND_PACK,},
+			{0,NULL}
+		};
+		for (int i = 0; funcs[i].message != 0; i++) {
+			if (m_mapFunc.insert(std::pair<UINT, MSGFUNC>(funcs[i].message, funcs[i].func)).second == false) {
+				TRACE("插入失败，消息值：%d 函数值：%08X 序号：%d\r\n", funcs[i].message, funcs[i].func, i);
+			}
+		}
+		m_mapFunc;
 	}
 	CClientSocket() :
 		m_nIP(INADDR_ANY), m_nPort(0), m_sock(INVALID_SOCKET), m_bAutoClose(true), m_hThread(INVALID_HANDLE_VALUE) {
@@ -238,6 +257,7 @@ private:
 	}
 	static void threadEntry(void* arg);
 	void threadFunc();
+	void threadFunc2();
 	BOOL InitSocketEnv() {
 		WSADATA data;
 		if (WSAStartup(MAKEWORD(1, 1), &data) != 0) {
@@ -259,6 +279,7 @@ private:
 		return send(m_sock, pData, nSize, 0) > 0;
 	}
 	bool Send(const CPacket& pack);
+	void SendPack(UINT nMsg, WPARAM wParam/*缓冲区的值*/, LPARAM lParam/*缓冲区的长度*/);
 	static CClientSocket* m_instance;
 	class CHelper {
 	public:
