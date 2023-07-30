@@ -106,25 +106,26 @@ LRESULT CWatchDialog::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 	else{
 		CPacket* pPacket = (CPacket*)wParam;
 		if (pPacket != NULL) {
-			switch (pPacket->sCmd)
+			CPacket head = *(CPacket*)wParam;
+			delete (CPacket*)wParam;
+			switch (head.sCmd)
 			{
 			case 6: {
-				if (m_isFull) {
-					CBlackTool::Bytes2Image(m_image, pPacket->strData);
-					CRect rect;
-					m_picture.GetWindowRect(rect);
-					m_nObjWidth = m_image.GetWidth();
-					m_nObjHeight = m_image.GetHeight();
-					m_image.StretchBlt(
-						m_picture.GetDC()->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(), SRCCOPY);//缩放
-					m_picture.InvalidateRect(NULL);
-					TRACE("更新图片完成%d %d %08X\r\n", m_nObjWidth, m_nObjHeight, (HBITMAP)m_image);
-					m_image.Destroy();
-					m_isFull = false;
-				}
+				CBlackTool::Bytes2Image(m_image, head.strData);
+				CRect rect;
+				m_picture.GetWindowRect(rect);
+				m_nObjWidth = m_image.GetWidth();
+				m_nObjHeight = m_image.GetHeight();
+				m_image.StretchBlt(
+					m_picture.GetDC()->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(), SRCCOPY);//缩放
+				m_picture.InvalidateRect(NULL);
+				TRACE("更新图片完成%d %d %08X\r\n", m_nObjWidth, m_nObjHeight, (HBITMAP)m_image);
+				m_image.Destroy();
 				break;
 			}
 			case 5:
+				TRACE("远程端应答了鼠标操作！\r\n");
+				break;
 			case 7:
 			case 8:
 			default:
@@ -158,6 +159,7 @@ void CWatchDialog::OnLButtonDown(UINT nFlags, CPoint point)
 		//坐标转换
 		CPoint remote = UserPoint2RemoteScreenPoint(point);
 		TRACE("x=%d y=%d\r\n", point.x, point.y);
+		TRACE("remote:%d %d\r\n", remote.x, remote.y);
 		//封装
 		MOUSEEV event;
 		event.ptXY = remote;
