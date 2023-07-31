@@ -235,26 +235,8 @@ void CRemoteClientDlg::LoadFileInfo()
 	DeleteTreeChildrenItem(hTreeSelected);
 	m_List.DeleteAllItems();
 	CString strPath = GetPath(hTreeSelected);
-	std::list<CPacket> lstPackets;
-	int nCmd = CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 2, false, (BYTE*)(LPCTSTR)strPath, strPath.GetLength(), (WPARAM)hTreeSelected);
-	if (lstPackets.size() > 0) {
-		TRACE("lstPackets.size = %d\r\n", lstPackets.size());
-		std::list<CPacket>::iterator it = lstPackets.begin();
-		for (; it != lstPackets.end(); it++) {
-			PFILEINFO pInfo = (PFILEINFO)(*it).strData.c_str();
-			if (pInfo->HashNext == FALSE)continue;
-			if (pInfo->IsDirectory) {
-				if (CString(pInfo->szFileName) == "." || (CString(pInfo->szFileName) == "..")) {
-					continue;
-				}
-				HTREEITEM hTemp = m_Tree.InsertItem(pInfo->szFileName, hTreeSelected, TVI_LAST);
-				m_Tree.InsertItem("", hTemp, TVI_LAST);
-			}
-			else {
-				m_List.InsertItem(0, pInfo->szFileName);
-			}
-		}
-	}
+	TRACE("hTreeSelected %08X\r\n", hTreeSelected);
+	CClientController::getInstance()->SendCommandPacket(GetSafeHwnd(), 2, false, (BYTE*)(LPCTSTR)strPath, strPath.GetLength(), (WPARAM)hTreeSelected);
 }
 
 CString CRemoteClientDlg::GetPath(HTREEITEM hTree) {
@@ -429,13 +411,16 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 			case 2://获取文件信息
 			{
 				PFILEINFO pInfo = (PFILEINFO)head.strData.c_str();
+				TRACE("HashNext %d IsDirectory %d szFileName %s\r\n", pInfo->HashNext, pInfo->IsDirectory, pInfo->szFileName);
 				if (pInfo->HashNext == FALSE)break;
 				if (pInfo->IsDirectory) {
 					if (CString(pInfo->szFileName) == "." || (CString(pInfo->szFileName) == "..")) {
 						break;
 					}
+					TRACE("hselected %08X %08X\r\n", lParam,m_Tree.GetSelectedItem());
 					HTREEITEM hTemp = m_Tree.InsertItem(pInfo->szFileName, (HTREEITEM)lParam, TVI_LAST);
 					m_Tree.InsertItem("", hTemp, TVI_LAST);
+					m_Tree.Expand((HTREEITEM)lParam, TVE_EXPAND);//展开
 				}
 				else {
 					m_List.InsertItem(0, pInfo->szFileName);
@@ -448,6 +433,7 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 			case 4:
 			{
 				static LONGLONG length = 0, index = 0;
+				TRACE("length %d index %d\r\n", length, index);
 				if (length == 0) {
 					length = *(long long*)head.strData.c_str();
 					if (length == 0) {
@@ -465,6 +451,13 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 					FILE* pFile = (FILE*)lParam;
 					fwrite(head.strData.c_str(), 1, head.strData.size(), pFile);
 					index += head.strData.size();
+					TRACE("index=%d\r\n", index);
+					if (index >= length) {
+						fclose((FILE*)lParam);
+						length = 0;
+						index = 0;
+						CClientController::getInstance()->DownloadEnd();
+					}
 				}
 			}
 			case 9:
