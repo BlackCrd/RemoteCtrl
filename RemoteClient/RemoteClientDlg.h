@@ -27,7 +27,7 @@ public:
 	void LoadFileInfo();
 private:
 	bool m_isClosed;//监视是否关闭
-private:
+private://TODO：代码即文档
 	void DealCommand(DWORD nCmd, const std::string& strData, LPARAM lParam);
 	void InitUIData();
 	void LoadFileCurrent();

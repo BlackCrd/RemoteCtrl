@@ -65,8 +65,8 @@ int CClientController::DownFile(CString strPath)
 			return -1;
 		}
 		SendCommandPacket(m_remoteDlg, 4, false, (BYTE*)(LPCSTR)m_strRemote.GetLength(), (WPARAM)pFile);
-		//m_hThreadDownload = (HANDLE)_beginthread(&CClientController::threadDownloadEntry, 0, this);
-		/*if (WaitForSingleObject(m_hThreadDownload, 0) != WAIT_TIMEOUT) {
+		/*m_hThreadDownload = (HANDLE)_beginthread(&CClientController::threadDownloadEntry, 0, this);
+		if (WaitForSingleObject(m_hThreadDownload, 0) != WAIT_TIMEOUT) {
 			return -1;
 		}*/
 		m_statusDlg.BeginWaitCursor();

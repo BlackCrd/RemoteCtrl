@@ -399,7 +399,6 @@ void CRemoteClientDlg::OnDownloadFile()
 		MessageBox(_T("下载失败！"));
 		TRACE("下载失败 ret=%d\r\n", ret);
 	}
-	TRACE("开始下载！！！");
 }
 
 
