@@ -138,7 +138,7 @@ private:
 		m_client = INVALID_SOCKET;//-1
 		if (InitSocketEnv() == FALSE) {
 			MessageBox(NULL, _T("无法初始化套接字环境，请检查网络设置！"), _T("初始化错误！"), MB_OK | MB_ICONERROR);
-			exit(0);
+			::exit(0);
 		}
 		m_sock = socket(PF_INET, SOCK_STREAM, 0);
 	}
