@@ -186,7 +186,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="BlackTool.h" />
-    <ClInclude Include="CBlackQueue.h" />
     <ClInclude Include="ClientController.h" />
     <ClInclude Include="ClientSocket.h" />
     <ClInclude Include="CWatchDialog.h" />
@@ -199,7 +198,6 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CBlackQueue.cpp" />
     <ClCompile Include="ClientController.cpp" />
     <ClCompile Include="ClientSocket.cpp" />
     <ClCompile Include="CWatchDialog.cpp" />
