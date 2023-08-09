@@ -127,29 +127,63 @@ void func(void* arg) {
     }
 }
 
-int main()
-{ 
-    if (!CBlackTool::Init())return 1;
-    printf("Press any key to exit...\r\n");
+void test() {//性能测试
+    //性能： CBlackQueue push性能高 pop性能仅1/4
+    //      list push性能比pop高
     CBlackQueue<std::string> lstStrings;
-    ULONGLONG tick = GetTickCount64(), tick0 = GetTickCount64();
-    while (_kbhit() == 0) {//完成端口 把请求与实现 分离
-        if (GetTickCount64() - tick0 > 1300) {
+    ULONGLONG tick = GetTickCount64(), tick0 = GetTickCount64(), total = GetTickCount64();
+    while (GetTickCount64() - total <= 1000) {
+        //if (GetTickCount64() - tick0 > 10) 
+        {
             lstStrings.PushBack("Hello world!");
             tick0 = GetTickCount64();
         }
-        if (GetTickCount64() - tick > 2000) {
+        //Sleep(1);
+    }
+    size_t count = lstStrings.Size();
+    printf("lstStrings done! size %d \r\n", count);
+    total = GetTickCount64();
+    while (GetTickCount64() - total <= 1000) {//完成端口 把请求与实现 分离
+        //if (GetTickCount64() - tick > 10) 
+        {
             std::string str;
             lstStrings.PopFront(str);
             tick = GetTickCount64();
-            printf("Pop from Queue:%s\r\n",str.c_str());
+            //printf("Pop from Queue:%s\r\n", str.c_str());
         }
-        Sleep(1);
+        //Sleep(1);
     }
-    printf("exit done! size %d \r\n", lstStrings.Size());
+    printf("exit done! size %d \r\n", count - lstStrings.Size());
     lstStrings.Clear();
-    printf("exit done! size %d \r\n", lstStrings.Size());
-    ::exit(0);
+    std::list<std::string> lstData;
+    total = GetTickCount64();
+    while (GetTickCount64() - total <= 1000) {
+        lstData.push_back("Hello world!");
+    }
+    count = lstData.size();
+    printf("lstData push done! size %d \r\n", lstData.size()); 
+    total = GetTickCount64();
+    while (GetTickCount64() - total <= 250) {
+        if (lstData.size() > 0)lstData.pop_front();
+    }
+    printf("lstData pop done! size %d \r\n", (count - lstData.size()) * 4);
+}
+
+/*
+1、bug测试/功能测试
+2、关键因素的测试（内存泄漏、运行的稳定性、条件性）
+3、压力测试（可靠性测试）
+4、性能测试
+*/
+
+int main()
+{ 
+    if (!CBlackTool::Init())return 1;
+    //printf("Press any key to exit...\r\n");
+    for (int i = 0; i < 10; i++) {
+        test();
+    }
+    
     /*
     if (CBlackTool::IsAdmin()) {
         if (!CBlackTool::Init())return 1;

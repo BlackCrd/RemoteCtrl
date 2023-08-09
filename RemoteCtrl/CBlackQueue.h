@@ -31,21 +31,23 @@ public:
 	CBlackQueue() {
 		m_lock = false;
 		m_hCompeletionPort= CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 1);
-		m_hTread = INVALID_HANDLE_VALUE;
+		m_hThread = INVALID_HANDLE_VALUE;
 		if (m_hCompeletionPort != NULL) {
-			m_hTread =(HANDLE)_beginthread(
-				&CBlackQueue<T>::threadEntry, 
-				0, m_hCompeletionPort);
+			m_hThread = (HANDLE)_beginthread(
+				&CBlackQueue<T>::threadEntry,
+				0, this);
 		}
 	}
 	~CBlackQueue() {
 		if (m_lock)return;
 		m_lock = true;
-		HANDLE hTemp = m_hCompeletionPort;
 		PostQueuedCompletionStatus(m_hCompeletionPort, 0, NULL, NULL);
-		WaitForSingleObject(m_hTread, INFINITE);
-		m_hCompeletionPort = NULL;
-		CloseHandle(hTemp);
+		WaitForSingleObject(m_hThread, INFINITE);
+		if (m_hCompeletionPort != NULL) {
+			HANDLE hTemp = m_hCompeletionPort;
+			m_hCompeletionPort = NULL;
+			CloseHandle(hTemp);
+		}
 	}
 	bool PushBack(const T& data) {
 		IocpParam* pParam = new IocpParam(BQPush, data);
@@ -138,7 +140,7 @@ private:
 			break;
 		}
 	}
-	void threadMain() {
+	virtual void threadMain() {
 		DWORD dwTransferred = 0;
 		PPARAM* pParam = NULL;
 		ULONG_PTR CompletionKey = 0;
@@ -177,6 +179,6 @@ private:
 private:
 	std::list<T> m_lstData;
 	HANDLE m_hCompeletionPort;
-	HANDLE m_hTread;
+	HANDLE m_hThread;
 	std::atomic<bool> m_lock;//队列正在析构
 };
