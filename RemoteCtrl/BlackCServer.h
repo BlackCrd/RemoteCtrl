@@ -23,8 +23,11 @@ public:
     std::vector<char> m_buffer;//缓冲区
     ThreadWorker m_worker;//处理函数
     BlackCServer* m_server;//服务器对象
-    PCLIENT m_client;//对应的客户端
+    BlackCClient* m_client;//对应的客户端
     WSABUF m_wsabuffer;
+    virtual ~BlackCOverlapped() {
+        m_client = NULL;
+    }
 };
 
 template<BlackCOperator>class AcceptOverlapped;
@@ -34,11 +37,16 @@ typedef RecvOverlapped<ERecv> RECVOVERLAPPED;
 template<BlackCOperator>class SendOverlapped;
 typedef SendOverlapped<ESend> SENDOVERLAPPED;
 
-class BlackCClient {
+class BlackCClient:public ThreadFuncBase {
 public:
     BlackCClient();
     ~BlackCClient() {
+        m_buffer.clear();
         closesocket(m_sock);
+        m_recv.reset();
+        m_send.reset();
+        m_overlapped.reset();
+        m_vecSend.Clear();
     }
 
     void SetOverlapped(PCLIENT& ptr);
@@ -60,13 +68,9 @@ public:
     sockaddr_in* GetLocalAddr() { return &m_laddr; }
     sockaddr_in* GetRemoteAddr() { return &m_raddr; }
     size_t GetBufferSize()const { return m_buffer.size(); }
-    int Recv() {
-        int ret = recv(m_sock, m_buffer.data() + m_used, m_buffer.size() - m_used, 0);
-        if (ret <= 0)return -1;
-        m_used += (size_t)ret;
-        //TODO:解析数据
-        return 0;
-    }
+    int Recv();
+    int Send(void* buffer, size_t nSize);
+    int SendData(std::vector<char>& data);
 private:
     SOCKET m_sock;
     DWORD m_received;
@@ -79,6 +83,7 @@ private:
     sockaddr_in m_laddr;
     sockaddr_in m_raddr;
     bool m_isbusy;
+    BlackCSendQueue<std::vector<char>> m_vecSend;//发送数据队列
 };
 
 template<BlackCOperator>
@@ -87,7 +92,6 @@ class AcceptOverlapped :public BlackCOverlapped,ThreadFuncBase
 public:
     AcceptOverlapped();
     int AcceptWorker();
-    PCLIENT m_client;
 };
 
 
@@ -109,6 +113,9 @@ public:
     SendOverlapped();
     int SendWorker() {
         //TODO:
+        /*
+        * 1 Send可能不会立即完成
+        */
         return -1;
     }
 };
@@ -129,8 +136,6 @@ public:
 };
 typedef ErrorOverlapped<EError> ERROROVERLAPPED;
 
-
-
 class BlackCServer :
     public ThreadFuncBase
 {
@@ -142,12 +147,13 @@ public:
         m_addr.sin_port = htons(port);
         m_addr.sin_addr.s_addr = inet_addr(ip.c_str());       
     }
-    ~BlackCServer(){}
+    ~BlackCServer();
     bool StartService();
     bool NewAccept() {
-        PCLIENT pClient(new BlackCClient());
+        //PCLIENT pClient(new BlackCClient());
+        BlackCClient* pClient = new BlackCClient();
         pClient->SetOverlapped(pClient);
-        m_client.insert(std::pair<SOCKET, PCLIENT>(*pClient, pClient));
+        m_client.insert(std::pair<SOCKET, BlackCClient*>(*pClient, pClient));
         if (!AcceptEx(m_sock,
             *pClient,
             *pClient,
@@ -173,5 +179,5 @@ private:
     HANDLE m_hIOCP;
     SOCKET m_sock;
     sockaddr_in m_addr;
-    std::map<SOCKET, std::shared_ptr<BlackCClient*>> m_client;
+    std::map<SOCKET, BlackCClient*> m_client;
 };

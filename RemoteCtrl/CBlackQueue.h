@@ -2,6 +2,7 @@
 #include "pch.h"
 #include <atomic>
 #include <list>
+#include "BlackCThread.h"
 
 template<class T>
 class CBlackQueue
@@ -39,7 +40,7 @@ public:
 				0, this);
 		}
 	}
-	~CBlackQueue() {
+	virtual ~CBlackQueue() {
 		if (m_lock)return;
 		m_lock = true;
 		PostQueuedCompletionStatus(m_hCompeletionPort, 0, NULL, NULL);
@@ -105,7 +106,7 @@ public:
 		//printf("Clear %08p\r\n", (void*)pParam);
 		return ret;
 	}
-private:
+protected:
 	static void threadEntry(void* arg) {
 		CBlackQueue<T>* thiz = (CBlackQueue<T>*)arg;
 		thiz->threadMain();
@@ -177,9 +178,88 @@ private:
 		m_hCompeletionPort = NULL;
 		CloseHandle(hTemp);
 	}
-private:
+protected:
 	std::list<T> m_lstData;
 	HANDLE m_hCompeletionPort;
 	HANDLE m_hThread;
 	std::atomic<bool> m_lock;//队列正在析构
 };
+
+template<class T>
+class BlackCSendQueue :public CBlackQueue<T>, public ThreadFuncBase
+{
+public:
+	typedef int (ThreadFuncBase::* BCCALLBACK)(T& data);
+	BlackCSendQueue(ThreadFuncBase* obj, BCCALLBACK callback)
+		:CBlackQueue<T>(), m_base(obj), m_callback(callback) 
+	{
+		m_thread.Start();
+		m_thread.UpdateWorker(::ThreadWorker(this, (FUNCTYPE)&BlackCSendQueue<T>::threadTick));
+	}
+	virtual ~BlackCSendQueue(){
+		m_base = NULL;
+		m_callback = NULL;
+		m_thread.Stop();
+	}
+protected:
+	virtual bool PopFront(T& data) { 
+		return false; 
+	}
+	bool PopFront(){
+		typename CBlackQueue<T>::IocpParam* Param = new typename CBlackQueue<T>::IocpParam(CBlackQueue<T>::BQPop, T());
+		if (CBlackQueue<T>::m_lock) {
+			delete Param;
+			return false;
+		}
+		bool ret = PostQueuedCompletionStatus(CBlackQueue<T>::m_hCompeletionPort, sizeof(*Param), (ULONG_PTR)&Param, NULL);
+		if (ret == false) {
+			delete Param;
+			return false;
+		}
+		return ret;
+	}
+	int threadTick() {
+		if (CBlackQueue<T>::m_lstData.size() > 0) {
+			PopFront();
+		}
+		Sleep(1);
+		return 0;
+	}
+	virtual void DealParam(typename CBlackQueue<T>::PPARAM* pParam) {
+		switch (pParam->nOperator)
+		{
+		case CBlackQueue<T>::BQPush:
+			CBlackQueue<T>::m_lstData.push_back(pParam->Data);
+			delete pParam;
+			//printf("delete %08p\r\n", (void*)pParam);
+			break;
+		case CBlackQueue<T>::BQPop:
+			if (CBlackQueue<T>::m_lstData.size() > 0) {
+				pParam->Data = CBlackQueue<T>::m_lstData.front();
+				if ((m_base->*m_callback)(pParam->Data) == 0)
+					CBlackQueue<T>::m_lstData.pop_front();
+			}
+			delete pParam;
+			break;
+		case CBlackQueue<T>::BQSize:
+			pParam->nOperator = CBlackQueue<T>::m_lstData.size();
+			if (pParam->hEvent != NULL)
+				SetEvent(pParam->hEvent);
+			break;
+		case CBlackQueue<T>::BQClear:
+			CBlackQueue<T>::m_lstData.clear();
+			delete pParam;
+			//printf("delete %08p\r\n", (void*)pParam);
+			break;
+		default:
+			OutputDebugStringA("Unknown operator!\r\n");
+			break;
+		}
+	}
+private:
+	ThreadFuncBase* m_base;
+	BCCALLBACK m_callback;
+	BlackCThread m_thread;
+};
+
+typedef BlackCSendQueue<std::vector<char>>::BCCALLBACK  SENDCALLBACK;

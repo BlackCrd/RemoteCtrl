@@ -44,6 +44,7 @@ class BlackCThread
 public:
 	BlackCThread() {
 		m_hThread = NULL;
+		m_bStatus = false;
 	}
 	~BlackCThread() {
 		Stop();
@@ -86,13 +87,17 @@ public:
 	}
 
 	bool IsIdle() {//true表示空闲 false表示已经分配了工作
-		if (m_worker == NULL)return true;
+		if (m_worker.load() == NULL)return true;
 		return !m_worker.load()->IsValid();
 	}
 
 private:
 	void ThreadWorker() {
 		while (m_bStatus) {
+			if (m_worker == NULL) {
+				Sleep(1);
+				continue;
+			}
 			::ThreadWorker worker = *m_worker.load();
 			if (worker.IsValid()) {
 				int ret = worker();
@@ -178,7 +183,7 @@ public:
 		return index;
 	}
 
-	bool CheckThreadValid(int index) {
+	bool CheckThreadValid(size_t index) {
 		if (index < m_threads.size()) {
 			return m_threads[index]->IsValid();
 		}
