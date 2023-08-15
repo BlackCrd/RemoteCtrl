@@ -14,16 +14,22 @@ AcceptOverlapped<op>::AcceptOverlapped() {
 
 template<BlackCOperator op>
 int AcceptOverlapped<op>::AcceptWorker() {
+    TRACE("AcceptWorker this %08X\r\n", this);
     INT lLength = 0, rLength = 0;
-    if (*(LPDWORD)*m_client > 0) {
+    if (m_client->GetBufferSize() > 0) {
+        LPSOCKADDR pLocalAddr, pRemoteAddr;
         GetAcceptExSockaddrs(*m_client, 0,
             sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
-            (sockaddr**)m_client->GetLocalAddr(), &lLength,//本地地址
-            (sockaddr**)m_client->GetRemoteAddr(), &rLength//远程地址
+            (sockaddr**)pLocalAddr, &lLength,//本地地址
+            (sockaddr**)pRemoteAddr, &rLength//远程地址
         );
-        int ret = WSARecv((SOCKET)*m_client, m_client->RecvWSABuffer(), 1, *m_client, &m_client->flags(), *m_client, NULL);
+        memcpy(m_client->GetLocalAddr(), pLocalAddr, sizeof(sockaddr_in));
+        memcpy(m_client->GetRemoteAddr(), pRemoteAddr, sizeof(sockaddr_in));
+        m_server->BindNewSocket(*m_client, (ULONG_PTR)m_client);
+        int ret = WSARecv((SOCKET)*m_client, m_client->RecvWSABuffer(), 1, *m_client, &m_client->flags(), m_client->RecvOverlapped(), NULL);
         if (ret == SOCKET_ERROR && (WSAGetLastError() != WSA_IO_PENDING)) {
-
+            //TODO:报错
+            TRACE("WSARecv failed %d\r\n", ret);
         }
         if (!m_server->NewAccept())
         {
@@ -74,9 +80,19 @@ LPWSABUF BlackCClient::RecvWSABuffer()
     return &m_recv->m_wsabuffer;
 }
 
+LPOVERLAPPED BlackCClient::RecvOverlapped()
+{
+    return &m_recv->m_overlapped;
+}
+
 LPWSABUF BlackCClient::SendWSABuffer()
 {
     return &m_send->m_wsabuffer;
+}
+
+LPOVERLAPPED BlackCClient::SendOverlapped()
+{
+    return &m_send->m_overlapped;
 }
 
 int BlackCClient::Recv()
@@ -122,6 +138,7 @@ BlackCServer::~BlackCServer()
     CloseHandle(m_hIOCP);
     m_client.clear();
     m_pool.Stop();
+    WSACleanup();
 }
 
 bool BlackCServer::StartService()
@@ -154,14 +171,21 @@ bool BlackCServer::StartService()
 }
 
 
+void BlackCServer::BindNewSocket(SOCKET s, ULONG_PTR nKey)
+{
+    CreateIoCompletionPort((HANDLE)s, m_hIOCP, nKey, 0);
+}
+
 int BlackCServer::threadIocp()
 {
     DWORD tranferred = 0;
     ULONG_PTR CompletionKey = 0;
     OVERLAPPED* lpOverlapped = NULL;
     if (GetQueuedCompletionStatus(m_hIOCP, &tranferred, &CompletionKey, &lpOverlapped, INFINITE)) {
-        if (tranferred > 0 && (CompletionKey != 0)) {
+        if (CompletionKey != 0) {
             BlackCOverlapped* pOverlapped = CONTAINING_RECORD(lpOverlapped, BlackCOverlapped, m_overlapped);
+            pOverlapped->m_server = this;
+            TRACE("Operator is %d\r\n", pOverlapped->m_operator);
             switch (pOverlapped->m_operator) {
             case EAccept:
             {

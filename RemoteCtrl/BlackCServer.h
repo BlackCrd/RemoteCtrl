@@ -63,7 +63,9 @@ public:
         return &m_received;
     }
     LPWSABUF RecvWSABuffer();
+    LPOVERLAPPED RecvOverlapped();
     LPWSABUF SendWSABuffer();
+    LPOVERLAPPED SendOverlapped();
     DWORD& flags() { return m_flags; }
     sockaddr_in* GetLocalAddr() { return &m_laddr; }
     sockaddr_in* GetRemoteAddr() { return &m_raddr; }
@@ -167,8 +169,13 @@ public:
         }
         return true;
     }
+    void BindNewSocket(SOCKET s, ULONG_PTR nKey);
 private:
     void CreateSocket() {
+        WSADATA data;
+        if (WSAStartup(MAKEWORD(2, 2), &data) != 0) {
+            return;
+        }
         m_sock = WSASocket(PF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
         int opt = 1;
         setsockopt(m_sock, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
