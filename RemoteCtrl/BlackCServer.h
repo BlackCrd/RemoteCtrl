@@ -49,7 +49,7 @@ public:
         m_vecSend.Clear();
     }
 
-    void SetOverlapped(PCLIENT& ptr);
+    void SetOverlapped(BlackCClient* ptr);
 
     operator SOCKET() {
         return m_sock;

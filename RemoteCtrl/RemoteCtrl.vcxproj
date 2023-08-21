@@ -157,6 +157,8 @@
     <ClInclude Include="BlackCServer.h" />
     <ClInclude Include="BlackCThread.h" />
     <ClInclude Include="BlackTool.h" />
+    <ClInclude Include="BNetwork.h" />
+    <ClInclude Include="BSocket.h" />
     <ClInclude Include="CBlackQueue.h" />
     <ClInclude Include="Command.h" />
     <ClInclude Include="framework.h" />
@@ -171,6 +173,7 @@
   <ItemGroup>
     <ClCompile Include="BlackCServer.cpp" />
     <ClCompile Include="BlackTool.cpp" />
+    <ClCompile Include="BNetwork.cpp" />
     <ClCompile Include="Command.cpp" />
     <ClCompile Include="LockInfoDialog.cpp" />
     <ClCompile Include="pch.cpp">

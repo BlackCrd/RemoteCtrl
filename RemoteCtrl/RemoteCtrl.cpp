@@ -155,52 +155,37 @@ void iocp() {
     getchar();
 }
 
+/*
+*1、易用性
+*       a 简化参数
+*       b 类型适配（参数适配）
+*       c 流程简化
+* 2、易移植性（高内聚，低耦合）
+*       a 核心功能到底是什么？
+*       b 业务逻辑是什么？ 
+*/
+
+#include "BNetwork.h"
+int RecvFromCB(void* arg,const BBuffer& buffer,BSockaddrIn& addr){
+    BServer* server = (BServer*)arg;
+    return server->Sendto(addr, buffer);
+}
+int SendToCB(void* arg, const BSockaddrIn& addr, int ret) {
+    BServer* server = (BServer*)arg;
+    printf("Sendto do done!%p\r\n", server);
+    return 0;
+}
 void udp_server() {
+    std::list<BSockaddrIn> lstclients;
     printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
-    SOCKET sock = socket(PF_INET, SOCK_DGRAM, 0);
-    if (sock == INVALID_SOCKET) {
-        printf("%s(%d):%s ERROR(%d)!!!\r\n", __FILE__, __LINE__, __FUNCTION__, WSAGetLastError());
-        return;
-    }
-    std::list<sockaddr_in> lstclients;
-    sockaddr_in server, client;
-    memset(&server, 0, sizeof(server));
-    memset(&client, 0, sizeof(client));
-    server.sin_family = AF_INET;
-    server.sin_port = htons(20000);
-    server.sin_addr.s_addr = inet_addr("127.0.0.1");
-    if (-1 == bind(sock, (sockaddr*)&server, sizeof(server))) {
-        printf("%s(%d):%s ERROR(%d)!!!\r\n", __FILE__, __LINE__, __FUNCTION__, WSAGetLastError());
-        closesocket(sock);
-        return;
-    }
-    std::string buf;
-    buf.resize(1024 * 256);
-    memset((char*)buf.c_str(), 0, buf.size());
-    int len = sizeof(client);
-    int ret = 0;
-    while (!_kbhit()) {
-        ret = recvfrom(sock, (char*)buf.c_str(), buf.size(), 0, (sockaddr*)&client, &len);
-        if (ret > 0) {
-            if (lstclients.size() <= 0) {
-                lstclients.push_back(client);
-                printf("%s(%d):%s ip %08X port %d\r\n", __FILE__, __LINE__, __FUNCTION__, client.sin_addr.s_addr, ntohs(client.sin_port));
-                ret = sendto(sock, buf.c_str(), ret, 0, (sockaddr*)&client, len);
-                printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
-            }
-            else {
-                memcpy((void*)buf.c_str(), &lstclients.front(), sizeof(lstclients.front())); 
-                ret = sendto(sock, buf.c_str(), sizeof(lstclients.front()), 0, (sockaddr*)&client, len);
-                printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
-            }
-            //CBlackTool::Dump((BYTE*)buf.c_str(), ret);            
-        }
-        else {
-            printf("%s(%d):%s ERROR(%d)!!! ret = %d\r\n", __FILE__, __LINE__, __FUNCTION__, WSAGetLastError(), ret);
-        }
-    }
-    closesocket(sock);
+    BServerParameter param(
+        "127.0.0.1",2000,BTYPE::BTypeUDP,NULL,NULL,NULL,RecvFromCB,SendToCB
+    );
+    BServer server(param);
+    server.Invoke(&server);
     printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
+    getchar();
+    return;
 }
 
 void udp_client(bool ishost) {
@@ -217,7 +202,7 @@ void udp_client(bool ishost) {
     }
     if (ishost) {//主客户端代码
         printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
-        std::string msg = "Hello world!\n";
+        BBuffer msg = "Hello world!\n";
         int ret = sendto(sock, msg.c_str(), msg.size(), 0, (sockaddr*)&server, sizeof(server));
         printf("%s(%d):%s ret = %d\r\n", __FILE__, __LINE__, __FUNCTION__, ret);
         if (ret > 0) {
@@ -263,3 +248,11 @@ void udp_client(bool ishost) {
     }
     closesocket(sock);
 }
+/*
+* 1、思路：做或者实现一个需求的过程
+*       确定需求（阶段性的）、选定技术方案（依据技术点）、从框架开发到细节实现（从顶到底）、编译问题、
+*       内存泄漏（线程函数，exit函数）、bug排查与功能调试（日志、断电、线程、调用堆栈、内存、监视、局部变量、自动变量）、
+*       压力测试（需额外写代码）、功能上线
+* 2、设计：易用性、移植性（可复用性）、安全性（线程安全、异常处理、资源处理）、稳定性（鲁棒性）、可扩展性
+*       有度、有条件（可读性、效率、易用性）
+*/

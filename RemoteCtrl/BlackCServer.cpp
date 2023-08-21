@@ -20,8 +20,8 @@ int AcceptOverlapped<op>::AcceptWorker() {
         LPSOCKADDR pLocalAddr, pRemoteAddr;
         GetAcceptExSockaddrs(*m_client, 0,
             sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
-            (sockaddr**)pLocalAddr, &lLength,//本地地址
-            (sockaddr**)pRemoteAddr, &rLength//远程地址
+            (sockaddr**)&pLocalAddr, &lLength,//本地地址
+            (sockaddr**)&pRemoteAddr, &rLength//远程地址
         );
         memcpy(m_client->GetLocalAddr(), pLocalAddr, sizeof(sockaddr_in));
         memcpy(m_client->GetRemoteAddr(), pRemoteAddr, sizeof(sockaddr_in));
@@ -66,10 +66,10 @@ BlackCClient::BlackCClient()
     m_buffer.resize(1024);
     memset(&m_laddr, 0, sizeof(m_laddr));
 }
-void BlackCClient::SetOverlapped(PCLIENT& ptr) {
-    m_overlapped->m_client = ptr.get();
-    m_recv->m_client = ptr.get();
-    m_send->m_client = ptr.get();
+void BlackCClient::SetOverlapped(BlackCClient* ptr) {
+    m_overlapped->m_client = ptr;
+    m_recv->m_client = ptr;
+    m_send->m_client = ptr;
 }
 BlackCClient::operator LPOVERLAPPED() {
     return &m_overlapped->m_overlapped;
